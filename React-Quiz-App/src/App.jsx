@@ -1,4 +1,4 @@
-import { useState , useEffect} from 'react'
+import { useState , useEffect , useRef} from 'react'
 import FlascardList from './components/FlashcardList.jsx';
 import './App.css'
 import axios from 'axios';
@@ -6,10 +6,37 @@ import axios from 'axios';
 const apiURL = 'https://opentdb.com/api.php?amount=10'
 
 function App() {
-  const [flashcards, setFlashcards] = useState(Sample_Flashcards);
+  const [flashcards, setFlashcards] = useState([]);
+  const [categories, setCategories] = useState([]);
+
+  const categoryEl = useRef();
+  const amountEl = useRef();
+
+  useEffect(() => {
+    axios.get('https://opentdb.com/api_category.php')
+      .then(res => {
+        setCategories(res.data.trivia_categories)
+      })
+  },[])
 
   useEffect(() => { 
-    axios.get('https://opentdb.com/api.php?amount=10')
+    
+  }, [])
+
+  function decodestring(str) { 
+    const text = document.createElement('textarea');
+    text.innerHTML = str;
+    return text.value;
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    axios.get('https://opentdb.com/api.php', {
+      params: {
+        amount: amountEl.current.value,
+        category: categoryEl.current.value
+      }
+    })
       .then(res => { 
         setFlashcards(res.data.results.map((questionItem, index) => { 
           const answer = decodestring(questionItem.correct_answer);
@@ -23,44 +50,32 @@ function App() {
         }))
         console.log(res.data)
       })
-  }, [])
-
-  function decodestring(str) { 
-    const text = document.createElement('textarea');
-    text.innerHTML = str;
-    return text.value;
-  }
+   }
 
   return (
-    <div className='container'>
-      <FlascardList flashcards={flashcards} />
-    </div>
+    <>
+      <form className='header' onSubmit={handleSubmit}>
+        <div className='form-group'>
+          <label htmlFor="category">Category</label>
+          <select id="category" ref={categoryEl}>
+            {categories.map(category => {
+              return <option value={category.id} key={category.id}>{category.name}</option>
+            })}
+          </select>
+        </div>
+        <div className='form-group'>
+          <label htmlFor="amount">Number Of Questions</label>
+          <input type='number' id='amount' min={1} step={1} defaultValue={10} ref={amountEl}></input>
+        </div>
+        <div className='form-group'>
+          <button className='btn'>Generate</button>
+        </div>
+      </form>
+      <div className='container'>
+        <FlascardList flashcards={flashcards} />
+      </div>
+    </>
   )
 }
-
-const Sample_Flashcards = [
-  {
-  id: 1,
-  question: "What is this?",
-  answer: "card",
-  options: [
-    "card",
-    "not card",
-    "flash",
-    "gg mate"
-  ]
-  },
-  {
-  id: 2,
-  question: "What is your name?",
-  answer: "how would I know man",
-  options: [
-    "how would I know man",
-    "karen",
-    "flash",
-    "drewki"
-  ]
-  }
-]
 
 export default App
